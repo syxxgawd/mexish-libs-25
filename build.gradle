@@ -1,0 +1,117 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+// Properties are stored in
+// *nix: ~/.gradle/gradle.properties
+// windows: C:\\Users\<user>\.gradle\gradle.properties
+def user = findProperty("repo.syxx.user")
+def pass = findProperty("repo.syxx.pass")
+
+allprojects {
+    group = 'net.mexish.libs'
+    version = '0.0.2-5-j25'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+}
+
+configure(subprojects) {
+    apply plugin: "java"
+    apply plugin: "java-library"
+    apply plugin: "maven-publish"
+
+    repositories {
+        mavenCentral()
+
+        maven {
+            url = "https://repo.syxx.ru/repository/maven-releases/"
+
+            credentials {
+                username = user
+                password = pass
+            }
+
+            mavenContent {
+                releasesOnly()
+            }
+        }
+
+        maven {
+            url = "https://repo.syxx.ru/repository/maven-snapshots/"
+
+            credentials {
+                username = user
+                password = pass
+            }
+
+            mavenContent {
+                snapshotsOnly()
+            }
+        }
+    }
+
+    tasks {
+        compileTestJava {
+            options.encoding = "UTF-8"
+            options.compilerArgs += "--enable-preview"
+        }
+
+        compileJava {
+            options.encoding = "UTF-8"
+            options.compilerArgs += "--enable-preview"
+        }
+
+        jar {
+            finalizedBy(publishToMavenLocal)
+        }
+    }
+
+    publishing {
+        repositories {
+            maven {
+                credentials {
+                    username = user
+                    password = pass
+                }
+
+                if (project.version.endsWith("-SNAPSHOT")) {
+                    url = "https://repo.syxx.ru/repository/maven-snapshots/"
+                } else {
+                    url = "https://repo.syxx.ru/repository/maven-releases/"
+                }
+            }
+        }
+
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+            }
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    dependencies {
+        compileOnly "org.projectlombok:lombok:1.18.42"
+        annotationProcessor "org.projectlombok:lombok:1.18.42"
+
+        compileOnly 'org.jetbrains:annotations:26.0.2-1'
+
+        testCompileOnly "org.projectlombok:lombok:1.18.42"
+        testAnnotationProcessor "org.projectlombok:lombok:1.18.42"
+
+        testImplementation "org.junit.jupiter:junit-jupiter-api:6.0.2"
+        testImplementation 'org.junit.platform:junit-platform-launcher:6.0.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter-engine:6.0.2'
+
+        testImplementation "org.openjdk.jmh:jmh-core:1.37"
+        testAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+    }
+}

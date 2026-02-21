@@ -1,0 +1,5 @@
+dependencies {
+    api project(":commons")
+
+    api "io.netty:netty-all:4.2.9.Final"
+}

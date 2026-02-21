@@ -1,0 +1,10 @@
+rootProject.name = 'mexish-libs-25'
+include 'commons'
+include 'modman'
+include 'configuration'
+include 'command'
+include 'www'
+
+include 'net-basic'
+include 'net-basic-compiler'
+include 'net-basic-example'

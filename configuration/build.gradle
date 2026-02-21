@@ -1,0 +1,6 @@
+dependencies {
+    api project(":commons")
+
+    api "org.yaml:snakeyaml:2.5"
+    api "com.alibaba.fastjson2:fastjson2:2.0.60"
+}

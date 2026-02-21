@@ -1,0 +1,3 @@
+dependencies {
+    api "net.mexish.libs:impl:0.2.2-3"
+}
