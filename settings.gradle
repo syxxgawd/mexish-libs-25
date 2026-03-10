@@ -3,6 +3,8 @@ include 'commons'
 include 'modman'
 include 'configuration'
 include 'command'
+include 'impl'
+include 'j-diff'
 
 include 'net-basic'
 include 'net-basic-compiler'

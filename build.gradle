@@ -27,32 +27,6 @@ configure(subprojects) {
 
     repositories {
         mavenCentral()
-
-        maven {
-            url = "https://repo.syxx.ru/repository/maven-releases/"
-
-            credentials {
-                username = user
-                password = pass
-            }
-
-            mavenContent {
-                releasesOnly()
-            }
-        }
-
-        maven {
-            url = "https://repo.syxx.ru/repository/maven-snapshots/"
-
-            credentials {
-                username = user
-                password = pass
-            }
-
-            mavenContent {
-                snapshotsOnly()
-            }
-        }
     }
 
     tasks {
