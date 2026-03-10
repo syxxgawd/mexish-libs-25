@@ -3,6 +3,7 @@ package net.mexish.libs.modman;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import net.mexish.libs.commons.util.IndexMap;
+import net.mexish.libs.commons.util.ThreadUtils;
 import net.mexish.libs.configuration.factory.ConfigurationProviderFactory;
 import net.mexish.libs.modman.annotation.LifecycleEventHandler;
 import net.mexish.libs.modman.dependency.DependencyGraph;
@@ -106,6 +107,7 @@ public final class ModuleManager {
                     if (dependencyGraph.get().isCircular(name, depend)) {
                         continue;
                     }
+
                     loadModule(depend.toLowerCase());
                     dependencyGraph.get().registerDependency(name, depend);
                 }
@@ -150,7 +152,6 @@ public final class ModuleManager {
 
                 wrapper.handle(ModuleLifecycleEvent.LOAD);
                 return wrapper;
-
             } catch (final Throwable t) {
                 val loader = loaders.get(name);
 
@@ -171,20 +172,16 @@ public final class ModuleManager {
     public void init(final @NonNull ModuleWrapper wrapper,
                      final @NonNull ModuleClassLoader loader,
                      final @NonNull ModuleMeta meta) {
-        val originalLoader = Thread.currentThread().getContextClassLoader();
         val name = meta.getName().toLowerCase();
 
-        Thread.currentThread().setContextClassLoader(loader);
-
-        try {
-            wrapper.handle(ModuleLifecycleEvent.INIT);
-            moduleStatus.put(name, true);
-        } catch (final Throwable t) {
-            moduleStatus.put(name, false);
-            throw ModuleLoadingException.withCause("Couldn't initialize module", t);
-        } finally {
-            Thread.currentThread().setContextClassLoader(originalLoader);
-        }
+        ThreadUtils.doWithOtherLoader(loader, () -> {
+                    wrapper.handle(ModuleLifecycleEvent.INIT);
+                    moduleStatus.put(name, true);
+                },
+                t -> {
+                    moduleStatus.put(name, false);
+                    throw ModuleLoadingException.withCause("Couldn't initialize module", t);
+                });
     }
 
     public void init(final @NonNull ModuleWrapper wrapper) {
@@ -201,9 +198,11 @@ public final class ModuleManager {
 
     public void init(final @NonNull String name) {
         val wrapper = moduleWrappers.get(String.class, name.toLowerCase());
+
         if (wrapper == null) {
             return;
         }
+
         init(wrapper);
     }
 
@@ -240,19 +239,14 @@ public final class ModuleManager {
     public void shutdown(final @NonNull ModuleWrapper wrapper,
                          final @NonNull ModuleClassLoader loader,
                          final @NonNull ModuleMeta meta) {
-        val originalLoader = Thread.currentThread().getContextClassLoader();
         val name = meta.getName().toLowerCase();
 
-        Thread.currentThread().setContextClassLoader(loader);
+        ThreadUtils.doWithOtherLoader(loader, () -> wrapper.handle(ModuleLifecycleEvent.SHUTDOWN),
+                t -> {
+                    throw ModuleLoadingException.withCause("Couldn't shutdown module", t);
+                });
 
-        try {
-            wrapper.handle(ModuleLifecycleEvent.SHUTDOWN);
-        } catch (final Throwable t) {
-            throw ModuleLoadingException.withCause("Couldn't shutdown module", t);
-        } finally {
-            moduleStatus.put(name, false);
-            Thread.currentThread().setContextClassLoader(originalLoader);
-        }
+        moduleStatus.put(name, false);
     }
 
     public void shutdown(final @NonNull ModuleWrapper wrapper) {

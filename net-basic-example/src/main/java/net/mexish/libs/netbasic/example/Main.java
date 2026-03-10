@@ -1,7 +1,6 @@
 package net.mexish.libs.netbasic.example;
 
-import lombok.val;
-import net.mexish.libs.netbasic.channel.NetworkServer;
+import net.mexish.libs.netbasic.channel.ServerConnection;
 import net.mexish.libs.netbasic.example.logic.ChatLogic;
 import net.mexish.libs.netbasic.example.proto.GamePacketRegistry;
 import net.mexish.libs.netbasic.example.proto.Protocol;
@@ -24,12 +23,12 @@ public class Main {
         DispatcherRegistry dispatcherRegistry = new DispatcherRegistry();
         dispatcherRegistry.loadAutomatically();
 
-        Object[] logicModules = {
+        final Object[] logicModules = {
                 new ChatLogic()
         };
 
         try {
-            var future = new NetworkServer(new SharedTcpProfile("0.0.0.0", 8080))
+            var future = new ServerConnection(new SharedTcpProfile("0.0.0.0", 8080))
                     .protocolLayer(new StandardPacketLayer(ChannelSide.SERVER))
                     .bind(() -> new PacketHandler(
                             Protocol.Handshake.class,

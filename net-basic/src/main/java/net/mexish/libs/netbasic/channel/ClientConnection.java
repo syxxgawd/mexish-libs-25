@@ -9,29 +9,38 @@ import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.val;
+import net.mexish.libs.netbasic.packet.Packet;
+import net.mexish.libs.netbasic.packet.RequestManager;
+import net.mexish.libs.netbasic.pipeline.PacketHandler;
 import net.mexish.libs.netbasic.pipeline.layer.ProtocolLayer;
 import net.mexish.libs.netbasic.transport.TransportProfile;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Accessors(fluent = true, chain = true)
 @SuppressWarnings("unchecked")
 @Setter
-public final class NetworkClient {
+public final class ClientConnection {
 
     TransportProfile profile;
     Map<ChannelOption<?>, Object> options = new LinkedHashMap<>();
 
     @NonFinal ProtocolLayer protocolLayer;
 
-    public NetworkClient(final @NonNull TransportProfile profile) {
+    @NonFinal RequestManager requestManager;
+
+    public ClientConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
     }
 
-    public <T> NetworkClient option(final @NonNull ChannelOption<T> option,
-                                    final @NonNull T value) {
+    public <T> ClientConnection option(final @NonNull ChannelOption<T> option,
+                                       final @NonNull T value) {
         this.options.put(option, value);
         return this;
     }
@@ -51,10 +60,23 @@ public final class NetworkClient {
                     protocolLayer.configure(ch.pipeline());
                 }
 
+                if (logicHandler instanceof PacketHandler handler) {
+                    requestManager = handler.getRequestManager();
+                }
+
                 ch.pipeline().addLast("logic", logicHandler);
             }
         });
 
         return bootstrap.connect(profile.address());
+    }
+
+    public @NotNull CompletableFuture<Packet.Response> createRequest(final @NonNull Packet.Request packet,
+                                                                     final @NonNull Consumer<Packet> sender) {
+        if (requestManager == null) {
+            throw new RuntimeException("unable to create req for packet: " + packet.getClass().getSimpleName());
+        }
+
+        return requestManager.createRequest(packet, sender);
     }
 }

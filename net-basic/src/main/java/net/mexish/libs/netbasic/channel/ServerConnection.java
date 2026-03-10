@@ -15,6 +15,7 @@ import lombok.val;
 import net.mexish.libs.netbasic.pipeline.layer.ProtocolLayer;
 import net.mexish.libs.netbasic.pipeline.factory.ChannelHandlerFactory;
 import net.mexish.libs.netbasic.transport.TransportProfile;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,24 +24,24 @@ import java.util.Map;
 @Accessors(fluent = true, chain = true)
 @SuppressWarnings("unchecked")
 @Setter
-public final class NetworkServer {
+public final class ServerConnection {
 
     TransportProfile profile;
     Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
 
     @NonFinal ProtocolLayer protocolLayer;
 
-    public NetworkServer(final @NonNull TransportProfile profile) {
+    public ServerConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
     }
 
-    public <T> NetworkServer childOption(final @NonNull ChannelOption<T> option,
-                                         final @NonNull T value) {
+    public <T> ServerConnection childOption(final @NonNull ChannelOption<T> option,
+                                            final @NonNull T value) {
         this.childOptions.put(option, value);
         return this;
     }
 
-    public ChannelFuture bind(final @NonNull ChannelHandlerFactory logicFactory) {
+    public ChannelFuture bind(final @Nullable ChannelHandlerFactory logicFactory) {
         val bootstrap = new ServerBootstrap();
 
         bootstrap.group(profile.bossGroup(), profile.workerGroup())
@@ -55,10 +56,17 @@ public final class NetworkServer {
                     protocolLayer.configure(ch.pipeline());
                 }
 
-                ch.pipeline().addLast("logic", logicFactory.newHandler());
+                if (logicFactory != null) {
+                    ch.pipeline().addLast("logic", logicFactory.newHandler());
+                }
             }
         });
 
         return bootstrap.bind(profile.address());
     }
+
+    public ChannelFuture bind() {
+        return bind(null);
+    }
+
 }

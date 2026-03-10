@@ -2,6 +2,7 @@ package net.mexish.libs.modman.loader;
 
 import lombok.NonNull;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URL;
@@ -21,17 +22,13 @@ public final class ModuleClassLoader extends URLClassLoader {
         ClassLoader.registerAsParallelCapable();
     }
 
-    /**
-     * Registers a neighbor module as a dependency.
-     * This module will be searched when a class is not found locally.
-     */
     public void link(final @NonNull ModuleClassLoader loader) {
         this.dependencies.add(loader);
     }
 
     @Override
-    protected Class<?> loadClass(final @NonNull String name,
-                                 final boolean resolve) throws ClassNotFoundException {
+    protected @NotNull Class<?> loadClass(final @NonNull String name,
+                                          final boolean resolve) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             var c = findLoadedClass(name);
 

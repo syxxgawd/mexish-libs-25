@@ -166,6 +166,7 @@ public abstract class NuclearReferenceMap<K, V> extends AbstractMap<K, V> {
                 idx = (idx + 2) & (m << 1);
             }
         }
+
         @Override
         void putInsert(Object[] tab, int idx, K key, V value) {
             TABLE_ACCESS.setVolatile(tab, idx + 1, value);
@@ -229,6 +230,7 @@ public abstract class NuclearReferenceMap<K, V> extends AbstractMap<K, V> {
                 idx = (idx + 2) & (m << 1);
             }
         }
+
         @Override
         void putInsert(final Object[] tab,
                        final int idx,

@@ -1,7 +1,9 @@
 package net.mexish.libs.netbasic.packet;
 
 import io.netty.buffer.ByteBuf;
+import lombok.AccessLevel;
 import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,12 +14,13 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author mexish
  */
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class PacketMapper {
 
-    private final PacketFactory[] idFactoryMap
+    PacketFactory[] idFactoryMap
             = new PacketFactory[256];
 
-    private final Map<Class<?>, Integer> classIdMap
+    Map<Class<?>, Integer> classIdMap
             = new ConcurrentHashMap<>(256, 0.5F);
 
     public void registerPacket(final int id,

@@ -3,7 +3,6 @@ include 'commons'
 include 'modman'
 include 'configuration'
 include 'command'
-include 'www'
 
 include 'net-basic'
 include 'net-basic-compiler'

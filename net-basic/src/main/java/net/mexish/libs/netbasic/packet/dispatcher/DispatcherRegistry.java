@@ -1,6 +1,8 @@
 package net.mexish.libs.netbasic.packet.dispatcher;
 
+import lombok.AccessLevel;
 import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 import net.mexish.libs.commons.util.ModernReferenceMap;
 import net.mexish.libs.commons.util.NuclearReferenceMap;
 import net.mexish.libs.netbasic.packet.state.ProtocolState;
@@ -11,9 +13,10 @@ import java.util.ServiceLoader;
 /**
  * @author mexish
  */
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class DispatcherRegistry {
 
-    private final Map<Class<? extends ProtocolState>, PacketDispatcher> dispatchers
+    Map<Class<? extends ProtocolState>, PacketDispatcher> dispatchers
             = NuclearReferenceMap.create(ModernReferenceMap.RefType.STRONG, ModernReferenceMap.RefType.STRONG);
 
     public void register(final @NonNull Class<? extends ProtocolState> state,

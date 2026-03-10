@@ -1,4 +1,0 @@
-dependencies {
-    api project(":commons")
-    api "com.sparkjava:spark-core:2.9.4"
-}
