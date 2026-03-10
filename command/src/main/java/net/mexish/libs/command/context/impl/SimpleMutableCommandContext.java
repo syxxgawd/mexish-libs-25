@@ -57,16 +57,11 @@ public class SimpleMutableCommandContext implements CommandContext {
         }
     }
 
-    // FIXME this shouldn't be a thing it seems quite retarded since the load on this an on the immutable impl is equal
     @Contract(" -> new")
     @Override
     public @NotNull CommandContext stripFirstArgument() {
-        return new SimpleMutableCommandContext(
-                wrapper,
-                user,
-                ArrayUtils.remove(arguments, 0),
-                typedArgumentCache
-        );
+        arguments = ArrayUtils.remove(arguments, 0);
+        return this;
     }
 
     @Contract(" -> new")

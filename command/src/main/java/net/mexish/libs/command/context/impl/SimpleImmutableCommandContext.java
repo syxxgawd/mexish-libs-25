@@ -39,15 +39,15 @@ public class SimpleImmutableCommandContext implements CommandContext {
         return arguments[idx];
     }
 
-    @Override
-    public CommandContext stripFirstArgument() {
-        return null;
-    }
-
     // unsupported
 
     @Override
     public void setTypedArgumentCache(final @NonNull TypedArgument<?>[] cache) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CommandContext stripFirstArgument() {
         throw new UnsupportedOperationException();
     }
 
