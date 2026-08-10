@@ -15,7 +15,7 @@ import javax.tools.StandardLocation;
 import java.io.IOException;
 import java.util.*;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_25)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @SupportedAnnotationTypes("net.mexish.libs.impl.Impl")
 public final class ImplProcessor extends AbstractProcessor {
 

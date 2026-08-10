@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -26,34 +27,44 @@ public final class ModuleClassLoader extends URLClassLoader {
         this.dependencies.add(loader);
     }
 
+    public void unlink(final @NonNull ModuleClassLoader loader) {
+        this.dependencies.remove(loader);
+    }
+
     @Override
     protected @NotNull Class<?> loadClass(final @NonNull String name,
                                           final boolean resolve) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             var c = findLoadedClass(name);
 
+            if (c == null && isSystemClass(name)) {
+                try {
+                    c = getParent().loadClass(name);
+                } catch (ClassNotFoundException ignored) {}
+            }
+
             if (c == null) {
                 try {
-                    c = super.loadClass(name, false);
-                } catch (ClassNotFoundException ignored) {
+                    c = findClass(name);
+                } catch (ClassNotFoundException ignored) {}
+            }
+
+            if (c == null) {
+                for (val dependency : dependencies) {
+                    try {
+                        c = dependency.loadClass(name, false);
+
+                        if (c != null) {
+                            break;
+                        }
+                    } catch (ClassNotFoundException ignored) {}
                 }
             }
 
-            if (c != null) {
-                return c;
-            }
-
-            for (val dependency : dependencies) {
+            if (c == null) {
                 try {
-                    c = dependency.loadClass(name, false);
-
-                    if (c == null) {
-                        continue;
-                    }
-
-                    break;
-                } catch (ClassNotFoundException ignored) {
-                }
+                    c = getParent().loadClass(name);
+                } catch (ClassNotFoundException ignored) {}
             }
 
             if (c == null) {
@@ -72,6 +83,15 @@ public final class ModuleClassLoader extends URLClassLoader {
     public void close() throws IOException {
         dependencies.clear();
         super.close();
+    }
+
+    private boolean isSystemClass(final String name) {
+        return name.startsWith("java.") ||
+                name.startsWith("javax.") ||
+                name.startsWith("sun.") ||
+                name.startsWith("jdk.") ||
+                name.startsWith("org.xml.") ||
+                name.startsWith("org.w3c.");
     }
 
 }

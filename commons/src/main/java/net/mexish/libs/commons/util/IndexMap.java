@@ -120,7 +120,7 @@ public abstract class IndexMap<Instance> {
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     static class BasicIndexMap<Instance> extends IndexMap<Instance> {
-        Map<Instance, Boolean> masterStore = NuclearReferenceMap.create(RefType.STRONG, RefType.STRONG);
+        Map<Instance, Boolean> masterStore = new ConcurrentHashMap<>();
 
         @Override
         public void store(@NonNull Instance instance) {
@@ -183,7 +183,7 @@ public abstract class IndexMap<Instance> {
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     static class HashIndex<Instance> extends ObjectIndex<Instance> {
-        Map<Object, Instance> storage = NuclearReferenceMap.create(RefType.STRONG, RefType.STRONG);
+        Map<Object, Instance> storage = new ModernReferenceMap<>(RefType.STRONG, RefType.STRONG);
 
         HashIndex(final @NonNull Function<Instance, ?> transfer) {
             super(transfer);
@@ -211,7 +211,7 @@ public abstract class IndexMap<Instance> {
     @RequiredArgsConstructor
     static class MultiIndex<Instance> extends Index<Instance> {
         Function<Instance, Collection<?>> fun;
-        Map<Object, Set<Instance>> storage = NuclearReferenceMap.create(RefType.STRONG, RefType.STRONG);
+        Map<Object, Set<Instance>> storage = new ConcurrentHashMap<>();
 
         @Override
         void store(Instance instance) {

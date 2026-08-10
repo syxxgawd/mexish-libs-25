@@ -17,6 +17,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,6 +58,10 @@ public final class ModuleManager {
 
     public ModuleManager(final Path moduleDir) {
         this.moduleDir.set(moduleDir);
+    }
+
+    static {
+        URLConnection.setDefaultUseCaches("jar", false);
     }
 
     public void load() throws Exception {
@@ -396,6 +401,10 @@ public final class ModuleManager {
         val loader = loaders.remove(name);
 
         if (loader != null) {
+            for (val l : loaders.values()) {
+                l.unlink(loader);
+            }
+
             try {
                 loader.close();
             } catch (final Throwable ignored) {}

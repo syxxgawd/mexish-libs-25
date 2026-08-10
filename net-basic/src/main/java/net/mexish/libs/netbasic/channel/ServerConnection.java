@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Accessors(fluent = true, chain = true)
@@ -27,7 +28,7 @@ import java.util.Map;
 public final class ServerConnection {
 
     TransportProfile profile;
-    Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
+    Map<ChannelOption<?>, Object> childOptions = new ConcurrentHashMap<>();
 
     @NonFinal ProtocolLayer protocolLayer;
 

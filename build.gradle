@@ -11,7 +11,7 @@ def pass = findProperty("repo.syxx.pass")
 
 allprojects {
     group = 'net.mexish.libs'
-    version = '0.0.2-5-j25'
+    version = '0.0.3-j25'
 
     java {
         toolchain {
@@ -54,9 +54,9 @@ configure(subprojects) {
                 }
 
                 if (project.version.endsWith("-SNAPSHOT")) {
-                    url = "https://repo.syxx.ru/repository/maven-snapshots/"
+                    url = "https://repo.mexish.net/repository/maven-snapshots/"
                 } else {
-                    url = "https://repo.syxx.ru/repository/maven-releases/"
+                    url = "https://repo.mexish.net/repository/maven-releases/"
                 }
             }
         }
