@@ -31,9 +31,9 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
         var requestId = -1;
         var actualPacket = packet;
 
-        if (packet instanceof Packet.Envelope(int id, Packet nigger)) {
-            requestId = id;
-            actualPacket = nigger;
+        if (packet instanceof Packet.Envelope envelope) {
+            requestId = envelope.requestId();
+            actualPacket = envelope.packet();
         }
 
         val state = ctx.channel().attr(ConnectionState.KEY).get();

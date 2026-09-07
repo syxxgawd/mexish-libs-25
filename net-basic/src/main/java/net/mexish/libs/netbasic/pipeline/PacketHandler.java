@@ -37,6 +37,7 @@ public final class PacketHandler extends SimpleChannelInboundHandler<Packet> {
         this.logicModules = logicModules;
 
         val foundListeners = new ArrayList<ConnectionListener>();
+
         for (val module : logicModules) {
             if (module instanceof ConnectionListener listener) {
                 foundListeners.add(listener);
@@ -52,54 +53,55 @@ public final class PacketHandler extends SimpleChannelInboundHandler<Packet> {
 
         super.channelActive(ctx);
 
-        Thread.ofVirtual().name("conn-active").start(() -> {
-            for (val listener : connectionListeners) {
-                listener.active(ctx);
-            }
-        });
+        for (val listener : connectionListeners) {
+            listener.active(ctx);
+        }
     }
 
     @Override
     public void channelInactive(final @NonNull ChannelHandlerContext ctx) throws Exception {
         super.channelInactive(ctx);
 
-        Thread.ofVirtual().name("conn-inactive").start(() -> {
-            for (val listener : connectionListeners) {
-                listener.inactive(ctx);
-            }
-        });
+        for (val listener : connectionListeners) {
+            listener.inactive(ctx);
+        }
+    }
+
+    @Override
+    public void userEventTriggered(final @NonNull ChannelHandlerContext ctx,
+                                   final @NonNull Object evt) throws Exception {
+        super.userEventTriggered(ctx, evt);
+
+        for (val listener : connectionListeners) {
+            listener.userEventTriggered(ctx, evt);
+        }
     }
 
     @Override
     protected void channelRead0(final @NonNull ChannelHandlerContext nettyCtx,
                                 final @NonNull Packet packet) {
         var requestId = -1;
-        Packet actualPacket;
+        Packet actualPacket = packet;
 
-        if (packet instanceof Packet.Envelope(int id, Packet nigger)) {
-            requestId = id;
-            actualPacket = nigger;
-        } else {
-            actualPacket = packet;
+        if (packet instanceof Packet.Envelope envelope) {
+            requestId = envelope.requestId();
+            actualPacket = envelope.packet();
         }
 
-        if (requestManager.handleIncoming(packet, requestId)) return;
+        if (requestManager.handleIncoming(actualPacket, requestId)) return;
 
         val ctx = new PacketProcessorContext(this, nettyCtx, packet, requestId);
+        val connectionState = nettyCtx.channel().attr(ConnectionState.KEY).get();
 
-        Thread.ofVirtual().name("packet-proc").start(() -> {
-            val connectionState = nettyCtx.channel().attr(ConnectionState.KEY).get();
+        if (connectionState == null) {
+            return;
+        }
 
-            if (connectionState == null) {
-                return;
-            }
+        val dispatcher = registry.get(connectionState.state());
 
-            val dispatcher = registry.get(connectionState.state());
-
-            if (dispatcher != null) {
-                dispatcher.dispatch(logicModules, actualPacket, ctx);
-            }
-        });
+        if (dispatcher != null) {
+            dispatcher.dispatch(logicModules, actualPacket, ctx);
+        }
     }
 
     public void setState(final @NonNull Class<? extends ProtocolState> newState,
@@ -121,4 +123,9 @@ public final class PacketHandler extends SimpleChannelInboundHandler<Packet> {
 
         ctx.close();
     }
+
+    public ConnectionState getState(final @NonNull ChannelHandlerContext ctx) {
+        return ctx.channel().attr(ConnectionState.KEY).get();
+    }
+
 }

@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.*;
 
 @SupportedAnnotationTypes({"net.mexish.libs.netbasic.annotation.PacketHandler", "net.mexish.libs.netbasic.annotation.PacketState"})
-@SupportedSourceVersion(SourceVersion.RELEASE_25)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @SuppressWarnings("unchecked")
 @AutoService(Processor.class)
@@ -78,7 +78,7 @@ public final class PacketAnnotationProcessor extends AbstractProcessor {
                     targetPackage = packageElement.getQualifiedName() + ".generated";
                 }
 
-                stateToHandlers.computeIfAbsent(stateElement, _ -> new ArrayList<>())
+                stateToHandlers.computeIfAbsent(stateElement, v_ -> new ArrayList<>())
                         .add(new HandlerInfo(method, logicClass, packetClass));
             }
         }

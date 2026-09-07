@@ -7,6 +7,7 @@ import net.mexish.libs.netbasic.packet.ProtocolMapping;
 import net.mexish.libs.netbasic.packet.state.ProtocolState;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author mexish
@@ -14,8 +15,7 @@ import java.util.Map;
 public enum ProtocolRegistry {
     INSTANCE;
 
-    private final Map<Class<? extends ProtocolState>, ProtocolMapping> stateMappings
-            = NuclearReferenceMap.create(ModernReferenceMap.RefType.STRONG, ModernReferenceMap.RefType.STRONG);
+    private final Map<Class<? extends ProtocolState>, ProtocolMapping> stateMappings = new ConcurrentHashMap<>();
 
     public void register(final @NonNull Class<? extends ProtocolState> state,
                          final @NonNull ProtocolMapping mapping) {

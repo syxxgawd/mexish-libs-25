@@ -35,6 +35,8 @@ public final class ClientConnection {
 
     @NonFinal RequestManager requestManager;
 
+    @NonFinal Channel channel;
+
     public ClientConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
     }
@@ -45,7 +47,7 @@ public final class ClientConnection {
         return this;
     }
 
-    public ChannelFuture connect(@NonNull ChannelHandler logicHandler) {
+    public ChannelFuture connect(final ChannelHandler logicHandler) {
         val bootstrap = new Bootstrap();
 
         bootstrap.group(profile.workerGroup())
@@ -60,6 +62,10 @@ public final class ClientConnection {
                     protocolLayer.configure(ch.pipeline());
                 }
 
+                if (logicHandler == null) {
+                    return;
+                }
+
                 if (logicHandler instanceof PacketHandler handler) {
                     requestManager = handler.getRequestManager();
                 }
@@ -68,15 +74,32 @@ public final class ClientConnection {
             }
         });
 
-        return bootstrap.connect(profile.address());
+        val future = bootstrap.connect(profile.address());
+        channel = future.channel();
+        return future;
     }
 
-    public @NotNull CompletableFuture<Packet.Response> createRequest(final @NonNull Packet.Request packet,
-                                                                     final @NonNull Consumer<Packet> sender) {
+    public @NotNull ChannelFuture connect() {
+        return connect(null);
+    }
+
+    public @NotNull CompletableFuture<Packet.Response> createRequest(final @NonNull Packet.Request packet) {
         if (requestManager == null) {
-            throw new RuntimeException("unable to create req for packet: " + packet.getClass().getSimpleName());
+            throw new RuntimeException("unable to create req for packet (requestManager null/logicHandler not instanceof PacketHandler): " + packet.getClass().getSimpleName());
         }
 
-        return requestManager.createRequest(packet, sender);
+        if (channel == null || !channel.isOpen()) {
+            throw new RuntimeException("attempted to create request while client channel is closed");
+        }
+
+        return requestManager.createRequest(packet, channel);
+    }
+
+    public void sendPacket(final @NonNull Packet packet) {
+        if (channel == null || !channel.isOpen()) {
+            return;
+        }
+
+        channel.writeAndFlush(packet);
     }
 }

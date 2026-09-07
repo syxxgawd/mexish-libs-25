@@ -20,4 +20,8 @@ public interface ConnectionListener {
         // noop
     }
 
+    default void userEventTriggered(final @NotNull ChannelHandlerContext ctx, Object evt) {
+        // noop
+    }
+
 }

@@ -11,7 +11,7 @@ def pass = findProperty("repo.syxx.pass")
 
 allprojects {
     group = 'net.mexish.libs'
-    version = '0.0.3-j25'
+    version = '0.0.1'
 
     java {
         toolchain {

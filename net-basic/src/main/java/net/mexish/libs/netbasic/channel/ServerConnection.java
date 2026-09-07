@@ -5,6 +5,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.util.AttributeKey;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.Setter;
@@ -12,14 +13,24 @@ import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.val;
+import net.mexish.libs.netbasic.packet.Packet;
+import net.mexish.libs.netbasic.packet.RequestManager;
+import net.mexish.libs.netbasic.pipeline.PacketHandler;
 import net.mexish.libs.netbasic.pipeline.layer.ProtocolLayer;
 import net.mexish.libs.netbasic.pipeline.factory.ChannelHandlerFactory;
 import net.mexish.libs.netbasic.transport.TransportProfile;
+import net.mexish.libs.netbasic.transport.impl.UdsProfile;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Accessors(fluent = true, chain = true)
@@ -34,7 +45,16 @@ public final class ServerConnection {
 
     public ServerConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
+
+        if (profile instanceof UdsProfile udsProfile) {
+            try {
+                Files.deleteIfExists(Paths.get(udsProfile.address().path()));
+            } catch (final Throwable ignored) {
+            }
+        }
     }
+
+    public static final AttributeKey<PacketHandler> HANDLER_KEY = AttributeKey.valueOf(ServerConnection.class, "packetHandler");
 
     public <T> ServerConnection childOption(final @NonNull ChannelOption<T> option,
                                             final @NonNull T value) {
@@ -43,27 +63,37 @@ public final class ServerConnection {
     }
 
     public ChannelFuture bind(final @Nullable ChannelHandlerFactory logicFactory) {
-        val bootstrap = new ServerBootstrap();
+        val bootstrap = new ServerBootstrap()
+                .group(profile.bossGroup(), profile.workerGroup())
+                .channel(profile.serverChannelClass())
+                .childHandler(new ChannelInitializer<>() {
+                    @Override
+                    protected void initChannel(final @NonNull Channel ch) {
+                        if (protocolLayer != null) {
+                            protocolLayer.configure(ch.pipeline());
+                        }
 
-        bootstrap.group(profile.bossGroup(), profile.workerGroup())
-                .channel(profile.serverChannelClass());
+                        if (logicFactory != null) {
+                            val logicHandler = logicFactory.newHandler();
+                            ch.pipeline().addLast("logic", logicHandler);
 
-        childOptions.forEach((key, value) -> bootstrap.childOption((ChannelOption<Object>) key, value));
-
-        bootstrap.childHandler(new ChannelInitializer<>() {
-            @Override
-            protected void initChannel(final @NonNull Channel ch) {
-                if (protocolLayer != null) {
-                    protocolLayer.configure(ch.pipeline());
-                }
-
-                if (logicFactory != null) {
-                    ch.pipeline().addLast("logic", logicFactory.newHandler());
-                }
-            }
+                            if (logicHandler instanceof PacketHandler handler) {
+                                ch.attr(HANDLER_KEY).set(handler);
+                            }
+                        }
+                    }
         });
 
-        return bootstrap.bind(profile.address());
+        childOptions.forEach((key, value) -> bootstrap.childOption((ChannelOption<Object>) key, value));
+        return bootstrap.bind(profile.address()).addListener(bs -> {
+            if (!bs.isSuccess()) {
+                return;
+            }
+
+            if (profile instanceof UdsProfile _profile) { // include for shared/think of a cleaner way
+                Files.setPosixFilePermissions(Paths.get(_profile.address().path()), PosixFilePermissions.fromString("rwxrwxrwx"));
+            }
+        });
     }
 
     public ChannelFuture bind() {

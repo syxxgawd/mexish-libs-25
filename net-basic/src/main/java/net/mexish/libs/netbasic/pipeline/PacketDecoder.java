@@ -55,10 +55,10 @@ public final class PacketDecoder extends ByteToMessageDecoder {
 
             if (packet instanceof Packet.Request || packet instanceof Packet.Response) {
                 out.add(new Packet.Envelope(PacketUtils.readVarInt(in), packet));
-            } else {
-                out.add(packet);
+                return;
             }
 
+            out.add(packet);
         } catch (final IndexOutOfBoundsException e) {
             in.resetReaderIndex();
         }

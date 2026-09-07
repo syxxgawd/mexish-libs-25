@@ -9,6 +9,7 @@ import net.mexish.libs.netbasic.packet.state.ProtocolState;
 
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author mexish
@@ -16,8 +17,7 @@ import java.util.ServiceLoader;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class DispatcherRegistry {
 
-    Map<Class<? extends ProtocolState>, PacketDispatcher> dispatchers
-            = NuclearReferenceMap.create(ModernReferenceMap.RefType.STRONG, ModernReferenceMap.RefType.STRONG);
+    Map<Class<? extends ProtocolState>, PacketDispatcher> dispatchers = new ConcurrentHashMap<>();
 
     public void register(final @NonNull Class<? extends ProtocolState> state,
                          final @NonNull PacketDispatcher dispatcher) {

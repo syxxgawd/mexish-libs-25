@@ -10,6 +10,7 @@ import net.mexish.libs.commons.util.NuclearReferenceMap;
 import net.mexish.libs.netbasic.util.TransportUtils;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author mexish
@@ -18,10 +19,8 @@ import java.util.Map;
 public enum NettyResources {
     INSTANCE;
 
-    Map<TransportUtils.TransportType, EventLoopGroup> workerCache
-            = NuclearReferenceMap.create(ModernReferenceMap.RefType.STRONG, ModernReferenceMap.RefType.STRONG);
-    Map<TransportUtils.TransportType, EventLoopGroup> bossCache
-            = NuclearReferenceMap.create(ModernReferenceMap.RefType.STRONG, ModernReferenceMap.RefType.STRONG);
+    Map<TransportUtils.TransportType, EventLoopGroup> workerCache = new ConcurrentHashMap<>();
+    Map<TransportUtils.TransportType, EventLoopGroup> bossCache = new ConcurrentHashMap<>();
 
     public EventLoopGroup getSharedWorker(final @NonNull TransportUtils.TransportType type) {
         return workerCache.computeIfAbsent(type,

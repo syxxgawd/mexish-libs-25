@@ -119,7 +119,7 @@ public final class ModuleWrapper {
     }
 
     public InputStream getResourceAsStream(final @NonNull String name) {
-        return core.getLoaders().get(meta.getName()).getResourceAsStream(name);
+        return core.getLoaders().get(meta.getName().toLowerCase()).getResourceAsStream(name);
     }
 
 }
