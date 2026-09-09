@@ -1,5 +1,6 @@
 package net.mexish.libs.netbasic.packet;
 
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.NonNull;
 import net.mexish.libs.netbasic.packet.state.ProtocolState;
@@ -12,13 +13,12 @@ import net.mexish.libs.netbasic.pipeline.PacketHandler;
  */
 public record PacketProcessorContext(PacketHandler handler, ChannelHandlerContext nettyCtx, Packet packet, int requestId) {
 
-    public void send(final @NonNull Packet packet) {
+    public ChannelFuture send(final @NonNull Packet packet) {
         if (packet instanceof Packet.Response && requestId != -1) {
-            nettyCtx.writeAndFlush(new Packet.Envelope(requestId, packet));
-            return;
+            return nettyCtx.writeAndFlush(new Packet.Envelope(requestId, packet));
         }
 
-        nettyCtx.writeAndFlush(packet);
+        return nettyCtx.writeAndFlush(packet);
     }
 
     public void switchState(final @NonNull Class<? extends ProtocolState> newState) {

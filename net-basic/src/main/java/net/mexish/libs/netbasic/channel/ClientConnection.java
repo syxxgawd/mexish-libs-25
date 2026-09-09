@@ -10,11 +10,16 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.val;
 import net.mexish.libs.netbasic.packet.Packet;
+import net.mexish.libs.netbasic.packet.ProtocolMapping;
 import net.mexish.libs.netbasic.packet.RequestManager;
+import net.mexish.libs.netbasic.packet.registry.ProtocolRegistry;
+import net.mexish.libs.netbasic.packet.state.ConnectionState;
+import net.mexish.libs.netbasic.packet.state.ProtocolState;
 import net.mexish.libs.netbasic.pipeline.PacketHandler;
 import net.mexish.libs.netbasic.pipeline.layer.ProtocolLayer;
 import net.mexish.libs.netbasic.transport.TransportProfile;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,6 +38,8 @@ public final class ClientConnection {
 
     @NonFinal ProtocolLayer protocolLayer;
 
+    @NonFinal ChannelHandler logicHandler;
+
     @NonFinal RequestManager requestManager;
 
     @NonFinal Channel channel;
@@ -47,7 +54,9 @@ public final class ClientConnection {
         return this;
     }
 
-    public ChannelFuture connect(final ChannelHandler logicHandler) {
+    public @NotNull ChannelFuture connect(final ChannelHandler logicHandler) {
+        this.logicHandler = logicHandler;
+
         val bootstrap = new Bootstrap();
 
         bootstrap.group(profile.workerGroup())
@@ -80,26 +89,53 @@ public final class ClientConnection {
     }
 
     public @NotNull ChannelFuture connect() {
-        return connect(null);
+        return connect(logicHandler);
     }
 
-    public @NotNull CompletableFuture<Packet.Response> createRequest(final @NonNull Packet.Request packet) {
+    public <R extends Packet.Response> @NotNull CompletableFuture<R> createRequest(final @NonNull Packet.Request<R> packet) {
         if (requestManager == null) {
             throw new RuntimeException("unable to create req for packet (requestManager null/logicHandler not instanceof PacketHandler): " + packet.getClass().getSimpleName());
         }
 
-        if (channel == null || !channel.isOpen()) {
+        if (channel == null || !channel.isActive()) {
             throw new RuntimeException("attempted to create request while client channel is closed");
         }
 
         return requestManager.createRequest(packet, channel);
     }
 
-    public void sendPacket(final @NonNull Packet packet) {
-        if (channel == null || !channel.isOpen()) {
-            return;
+    public ChannelFuture sendPacket(final @NonNull Packet packet) {
+        if (channel == null || !channel.isActive()) {
+            throw new IllegalStateException("attempted sending a packet while disconnected");
         }
 
-        channel.writeAndFlush(packet);
+        return channel.writeAndFlush(packet);
     }
+
+    public boolean isActive() {
+        return channel != null && channel.isActive();
+    }
+
+    public ChannelFuture disconnect() {
+        if (channel == null) {
+            throw new IllegalStateException("attempted disconnecting without ever initializing a channel!");
+        }
+
+        return channel.close();
+    }
+
+    public void upgradeConnection(final @NonNull Class<? extends ProtocolState> newState) {
+        if (channel == null) {
+            throw new IllegalStateException("attempted upgrading connection without ever initializing a channel!");
+        }
+
+        val mapping = ProtocolRegistry.INSTANCE.get(newState);
+
+        if (mapping == null) {
+            throw new IllegalStateException("No ProtocolMapping registered for state: " + newState.getName());
+        }
+
+        channel.attr(ConnectionState.KEY).set(new ConnectionState(newState, mapping));
+    }
+
 }

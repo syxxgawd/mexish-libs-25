@@ -10,7 +10,7 @@ public interface Packet {
 
     void write(final @NotNull ByteBuf buf);
 
-    interface Request extends Packet {}
+    interface Request<R extends Packet.Response> extends Packet {}
     interface Response extends Packet {}
 
     record Envelope(int requestId, Packet packet) implements Packet {

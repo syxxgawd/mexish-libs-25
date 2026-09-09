@@ -35,13 +35,13 @@ import java.util.function.Consumer;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Accessors(fluent = true, chain = true)
 @SuppressWarnings("unchecked")
-@Setter
 public final class ServerConnection {
 
     TransportProfile profile;
     Map<ChannelOption<?>, Object> childOptions = new ConcurrentHashMap<>();
 
-    @NonFinal ProtocolLayer protocolLayer;
+    // think about finalizing it perhaps
+    @Setter @NonFinal ProtocolLayer protocolLayer;
 
     public ServerConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
