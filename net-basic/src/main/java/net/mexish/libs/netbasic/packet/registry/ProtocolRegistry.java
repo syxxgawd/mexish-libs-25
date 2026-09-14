@@ -22,6 +22,10 @@ public enum ProtocolRegistry {
         stateMappings.put(state, mapping);
     }
 
+    public void unregister(final @NonNull Class<? extends ProtocolState> state) {
+        stateMappings.remove(state);
+    }
+
     public ProtocolMapping get(final @NonNull Class<? extends ProtocolState> state) {
         return stateMappings.get(state);
     }

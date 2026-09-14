@@ -120,7 +120,8 @@ public final class ModuleManager {
 
             val wrapper = new ModuleWrapper(meta, moduleDir.get().resolve(meta.getName()), this);
             val lookup = MethodHandles.lookup();
-            val originalLoader = Thread.currentThread().getContextClassLoader();
+            //val originalLoader = Thread.currentThread().getContextClassLoader(); // IM FUCKING RETARDEDED
+            val originalLoader = getClass().getClassLoader();
 
             try {
                 val loader = new ModuleClassLoader(new URL[]{meta.getPath().toUri().toURL()}, originalLoader);
@@ -309,7 +310,9 @@ public final class ModuleManager {
                        final @NonNull ModuleClassLoader loader,
                        final @NonNull ModuleMeta meta) {
         unload(wrapper, loader, meta);
-        init(loadModule(meta));
+        val module = loadModule(meta);
+        val newLoader = loaders.get(meta.getName().toLowerCase());
+        ThreadUtils.doWithOtherLoader(newLoader, () -> init(module));
     }
 
     public void reload(final @NonNull ModuleWrapper wrapper) {
@@ -408,6 +411,10 @@ public final class ModuleManager {
             try {
                 loader.close();
             } catch (final Throwable ignored) {}
+
+            if (Thread.currentThread().getContextClassLoader() == loader) {
+                Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            }
         }
 
         moduleStatus.remove(name);

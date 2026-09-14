@@ -5,7 +5,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.util.AttributeKey;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.Setter;
@@ -13,8 +12,6 @@ import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.val;
-import net.mexish.libs.netbasic.packet.Packet;
-import net.mexish.libs.netbasic.packet.RequestManager;
 import net.mexish.libs.netbasic.packet.registry.ProtocolRegistry;
 import net.mexish.libs.netbasic.packet.state.ConnectionState;
 import net.mexish.libs.netbasic.packet.state.ProtocolState;
@@ -29,11 +26,10 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.concurrent.TimeUnit;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Accessors(fluent = true, chain = true)
@@ -45,6 +41,8 @@ public final class ServerConnection {
 
     // think about finalizing it perhaps
     @Setter @NonFinal ProtocolLayer protocolLayer;
+
+    @NonFinal Channel serverChannel;
 
     public ServerConnection(final @NonNull TransportProfile profile) {
         this.profile = profile;
@@ -86,7 +84,8 @@ public final class ServerConnection {
         });
 
         childOptions.forEach((key, value) -> bootstrap.childOption((ChannelOption<Object>) key, value));
-        return bootstrap.bind(profile.address()).addListener(bs -> {
+
+        val future = bootstrap.bind(profile.address()).addListener(bs -> {
             if (!bs.isSuccess()) {
                 return;
             }
@@ -95,6 +94,9 @@ public final class ServerConnection {
                 Files.setPosixFilePermissions(Paths.get(_profile.address().path()), PosixFilePermissions.fromString("rwxrwxrwx"));
             }
         });
+
+        serverChannel = future.channel();
+        return future;
     }
 
     public void upgradeConnection(final @NonNull Channel channel,
@@ -108,8 +110,20 @@ public final class ServerConnection {
         channel.attr(ConnectionState.KEY).set(new ConnectionState(newState, mapping));
     }
 
-    public ChannelFuture bind() {
+    public @NotNull ChannelFuture bind() {
         return bind(null);
+    }
+
+    /**
+     * Shuts everything down in this connection, profile cannot be reused!!!
+     */
+    public void shutdownGracefully() {
+        if (serverChannel != null) {
+            serverChannel.close().awaitUninterruptibly();
+        }
+
+        profile.bossGroup().shutdownGracefully(0, 2, TimeUnit.SECONDS).awaitUninterruptibly();
+        profile.workerGroup().shutdownGracefully(0, 2, TimeUnit.SECONDS).awaitUninterruptibly();
     }
 
 }
