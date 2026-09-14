@@ -15,6 +15,9 @@ import lombok.experimental.NonFinal;
 import lombok.val;
 import net.mexish.libs.netbasic.packet.Packet;
 import net.mexish.libs.netbasic.packet.RequestManager;
+import net.mexish.libs.netbasic.packet.registry.ProtocolRegistry;
+import net.mexish.libs.netbasic.packet.state.ConnectionState;
+import net.mexish.libs.netbasic.packet.state.ProtocolState;
 import net.mexish.libs.netbasic.pipeline.PacketHandler;
 import net.mexish.libs.netbasic.pipeline.layer.ProtocolLayer;
 import net.mexish.libs.netbasic.pipeline.factory.ChannelHandlerFactory;
@@ -54,8 +57,6 @@ public final class ServerConnection {
         }
     }
 
-    public static final AttributeKey<PacketHandler> HANDLER_KEY = AttributeKey.valueOf(ServerConnection.class, "packetHandler");
-
     public <T> ServerConnection childOption(final @NonNull ChannelOption<T> option,
                                             final @NonNull T value) {
         this.childOptions.put(option, value);
@@ -78,7 +79,7 @@ public final class ServerConnection {
                             ch.pipeline().addLast("logic", logicHandler);
 
                             if (logicHandler instanceof PacketHandler handler) {
-                                ch.attr(HANDLER_KEY).set(handler);
+                                upgradeConnection(ch, handler.getInitialState());
                             }
                         }
                     }
@@ -94,6 +95,17 @@ public final class ServerConnection {
                 Files.setPosixFilePermissions(Paths.get(_profile.address().path()), PosixFilePermissions.fromString("rwxrwxrwx"));
             }
         });
+    }
+
+    public void upgradeConnection(final @NonNull Channel channel,
+                                  final @NonNull Class<? extends ProtocolState> newState) {
+        val mapping = ProtocolRegistry.INSTANCE.get(newState);
+
+        if (mapping == null) {
+            throw new IllegalStateException("No ProtocolMapping registered for state: " + newState.getName());
+        }
+
+        channel.attr(ConnectionState.KEY).set(new ConnectionState(newState, mapping));
     }
 
     public ChannelFuture bind() {

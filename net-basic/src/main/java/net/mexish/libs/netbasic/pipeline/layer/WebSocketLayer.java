@@ -56,6 +56,8 @@ public class WebSocketLayer implements ProtocolLayer {
         return new WebSocketLayer(ChannelSide.CLIENT, null, handshaker);
     }
 
+    public static final String WS_HANDLER = "ws_protocol";
+
     public static final String FRAME_ENCODER = "frame_encoder";
     public static final String FRAME_DECODER = "frame_decoder";
 
@@ -83,13 +85,13 @@ public class WebSocketLayer implements ProtocolLayer {
             case CLIENT -> {
                 pipe.addLast(new HttpClientCodec());
                 pipe.addLast(new HttpObjectAggregator(65536));
-                pipe.addLast(new WebSocketClientProtocolHandler(clientHandshaker));
+                pipe.addLast(WS_HANDLER, new WebSocketClientProtocolHandler(clientHandshaker));
             }
 
             case SERVER -> {
                 pipe.addLast(new HttpServerCodec());
                 pipe.addLast(new HttpObjectAggregator(65536));
-                pipe.addLast(new WebSocketServerProtocolHandler(wsPath));
+                pipe.addLast(WS_HANDLER, new WebSocketServerProtocolHandler(wsPath));
             }
         }
 

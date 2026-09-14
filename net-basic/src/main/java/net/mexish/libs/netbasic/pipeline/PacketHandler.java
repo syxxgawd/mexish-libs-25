@@ -78,6 +78,14 @@ public final class PacketHandler extends SimpleChannelInboundHandler<Packet> {
     }
 
     @Override
+    public void exceptionCaught(final @NonNull ChannelHandlerContext ctx,
+                                final @NonNull Throwable cause) throws Exception {
+        for (val listener : connectionListeners) {
+            listener.exceptionCaught(ctx, cause);
+        }
+    }
+
+    @Override
     protected void channelRead0(final @NonNull ChannelHandlerContext nettyCtx,
                                 final @NonNull Packet packet) {
         var requestId = -1;

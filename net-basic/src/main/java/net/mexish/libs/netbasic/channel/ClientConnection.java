@@ -77,6 +77,7 @@ public final class ClientConnection {
 
                 if (logicHandler instanceof PacketHandler handler) {
                     requestManager = handler.getRequestManager();
+                    upgradeConnection(ch, handler.getInitialState());
                 }
 
                 ch.pipeline().addLast("logic", logicHandler);
@@ -129,6 +130,11 @@ public final class ClientConnection {
             throw new IllegalStateException("attempted upgrading connection without ever initializing a channel!");
         }
 
+        upgradeConnection(channel, newState);
+    }
+
+    public void upgradeConnection(final @NonNull Channel channel,
+                                  final @NonNull Class<? extends ProtocolState> newState) {
         val mapping = ProtocolRegistry.INSTANCE.get(newState);
 
         if (mapping == null) {
@@ -136,6 +142,14 @@ public final class ClientConnection {
         }
 
         channel.attr(ConnectionState.KEY).set(new ConnectionState(newState, mapping));
+    }
+
+    public @NotNull Class<? extends ProtocolState> getState() {
+        if (channel == null) {
+            throw new IllegalStateException("cannot retrieve state while channel isn't initialized");
+        }
+
+        return channel.attr(ConnectionState.KEY).get().state();
     }
 
 }

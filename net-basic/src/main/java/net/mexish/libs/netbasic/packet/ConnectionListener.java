@@ -24,4 +24,9 @@ public interface ConnectionListener {
         // noop
     }
 
+    default void exceptionCaught(final @NotNull ChannelHandlerContext ctx,
+                                 final @NotNull Throwable t) {
+        //noop
+    }
+
 }
